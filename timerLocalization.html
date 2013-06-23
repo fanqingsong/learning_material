@@ -137,6 +137,17 @@ closureFunc.call(myTimerAPI3, 3)
 myTimerAPI3.startTimer();
 /****************************** closure Use this as a Namespace Proxy *****************/
 
+var ns = new function() {
+
+    var internalFunction = function() {
+
+    };
+
+    this.publicFunction = function() {
+
+    };
+};
+
 </script>
     </body>
 </html>
