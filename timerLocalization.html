@@ -148,6 +148,17 @@ var ns = new function() {
     };
 };
 
+-----------------------------------------------------------------------------------------------------------------------------
+var your_namespace = your_namespace || {};
+your_namespace.Foo = {toAlert:'test'};
+your_namespace.Bar = function(arg) 
+{
+    alert(arg);
+};
+with(your_namespace)
+{
+   Bar(Foo.toAlert);
+}
 </script>
     </body>
 </html>
