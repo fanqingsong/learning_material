@@ -137,6 +137,28 @@ closureFunc.call(myTimerAPI3, 3)
 myTimerAPI3.startTimer();
 /****************************** closure Use this as a Namespace Proxy *****************/
 
+var ns = new function() {
+
+    var internalFunction = function() {
+
+    };
+
+    this.publicFunction = function() {
+
+    };
+};
+
+-----------------------------------------------------------------------------------------------------------------------------
+var your_namespace = your_namespace || {};
+your_namespace.Foo = {toAlert:'test'};
+your_namespace.Bar = function(arg) 
+{
+    alert(arg);
+};
+with(your_namespace)
+{
+   Bar(Foo.toAlert);
+}
 </script>
     </body>
 </html>
