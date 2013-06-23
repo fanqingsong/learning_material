@@ -1,0 +1,156 @@
+<html>
+<body>
+<script>
+var pages = new Array()
+
+pages["welecome"] = new Array();
+pages["welecome"]["info"] = new Array();
+pages["welecome"]["info"]["styleFile"] = "wizard_Start_t.lp"
+pages["welecome"]["successor"] = new Array();
+pages["welecome"]["successor"][0] = "extender_t.lp"
+pages["welecome"]["successor"][1] = "workmode_t.lp"
+pages["welecome"]["isBeginning"] = true; 
+
+pages["extender"] = new Array();
+pages["extender"]["info"] = new Array();
+pages["extender"]["info"]["styleFile"] = "extender_t.lp"
+pages["extender"]["successor"] = new Array();
+
+pages["workmode"] = new Array();
+pages["workmode"]["info"] = new Array();
+pages["workmode"]["info"]["styleFile"] = "workmode_t.lp"
+pages["workmode"]["successor"] = new Array();
+pages["workmode"]["successor"][0] = "WAN_t.lp"
+pages["workmode"]["successor"][1] = "WLAN_t.lp"
+
+pages["WAN"] = new Array();
+pages["WAN"]["info"] = new Array();
+pages["WAN"]["info"]["styleFile"] = "WAN_t.lp"
+pages["WAN"]["successor"] = new Array();
+pages["WAN"]["successor"][0] = "WLAN_t.lp"
+
+pages["WLAN"] = new Array();
+pages["WLAN"]["info"] = new Array();
+pages["WLAN"]["info"]["styleFile"] = "WLAN_t.lp"
+pages["WLAN"]["successor"] = new Array();
+pages["WLAN"]["successor"][0] = "OVER_t.lp"
+
+pages["OVER"] = new Array();
+pages["OVER"]["info"] = new Array();
+pages["OVER"]["info"]["styleFile"] = "OVER_t.lp"
+pages["OVER"]["successor"] = new Array();
+
+function isSuccessor(pName, pNameSucc)
+{
+	var page = pages[pName];
+	var successors = page["successor"];
+	var styleFile = pages[pNameSucc]["info"]["styleFile"];
+	for ( var index in successors )
+	{
+		var successor = successors[index];
+		if ( successor == styleFile )
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+var edgeWeight = new Array();
+for ( var pName in pages )
+{
+	edgeWeight[pName] = new Array();
+	for ( var pNameA in pages )
+	{
+		var isSucc = isSuccessor(pName, pNameA);
+		if ( true == isSucc )
+		{
+			edgeWeight[pName][pNameA] = 1;
+		}
+		else
+		{
+			edgeWeight[pName][pNameA] = Number.POSITIVE_INFINITY;
+		}
+		console.log("pName="+pName+"|pNameA="+pNameA+"|edgeWeight="+edgeWeight[pName][pNameA])
+	}
+}
+
+/* 已经知道最短路径集合 */
+var knownSet = []
+
+/* 未知最短路径集合 */
+var unKnownSet = []
+
+for ( var pName in pages )
+{
+	var isBegin = pages[pName]["isBeginning"];
+	if ( true == isBegin )
+	{
+		knownSet.push(pName);
+	}
+	else
+	{
+		unKnownSet.push(pName);
+	}
+}
+
+/* 最短特殊路径长度 */
+var distanceSP = new Array();
+var pNameStart = knownSet[0];
+for ( var index in unKnownSet )
+{
+	var pName = unKnownSet[index];
+	distanceSP[pName] = edgeWeight[pNameStart][pName];
+	console.log("pNameStart="+pNameStart+"|pName="+pName+"|distanceSP="+distanceSP[pName])
+	
+}
+
+/* dijstra */
+var loopNum = unKnownSet.length;
+for ( var i=0; i<loopNum; i++ )
+{
+	/* 找unKnownSet中最短特殊路径顶点 */
+	var minDistPName = unKnownSet[0]; 
+	var minDistIndex = 0;
+	var minDist = distanceSP[minDistPName]
+	for ( var index in unKnownSet )
+	{
+		var pName = unKnownSet[index];
+		var dist = distanceSP[pName];
+		if ( dist < minDist )
+		{
+			minDist = dist;
+			minDistPName = pName;
+			minDistIndex = index;
+		}
+	}
+	
+	/* 将最短特殊路径顶点，从unkownSet中删除，加入knownSet */
+	unKnownSet.splice(minDistIndex, 1);
+	knownSet.push(minDistPName);
+	
+	/* 更新 unKnownSet 中元素的 distanceSP 值得 */
+	for ( var index in unKnownSet )
+	{
+		var pName = unKnownSet[index];
+		var oldDist = distanceSP[pName];
+		var weight = edgeWeight[minDistPName][pName];
+		var newDist = minDist + weight;
+		if ( newDist < oldDist )
+		{
+			distanceSP[pName] = newDist;
+		}
+	}
+}
+
+/* 输出看打印结果 */
+for ( var index in knownSet )
+{
+	var pName = knownSet[index];
+	document.write("pName="+pName+"|shortPath="+distanceSP[pName]+"<br/>");
+}
+
+</script>
+</body>
+</html>
