@@ -1,0 +1,182 @@
+#!/usr/bin/wish
+# First, we will create the main window components, including a text widget, with an
+# associated scrollbar, and a status widget, to display menu traversal and error messages.
+# We arrange these widgets on the screen using the grid command.
+# We will also create a new font named myFont.
+# We will use the menu to manipulate the font attributes so that the text in the text
+# widget will change its appearance.
+
+wm title . "Menu demonstration"
+wm iconname . "Menu demo"
+
+# create the basic UI
+scrollbar .yscroll -orient vertical -command ".text yview"
+font create myfont -family Courier -size 10 -weight bold -slant italic \
+    -underline 1 
+text .text -height 10 -width 40 -bg white -yscrollcommand ".yscroll set" -font myfont
+label .msg -relief sunken -bd 2 -textvariable message -anchor w -font "Helvetica 10"
+.text insert end "Menu Demonstration!"
+
+# manage the widgets using the grid geometry manager.
+grid .text -row 0 -column 0  -sticky "news" 
+grid .yscroll -row 0 -column 1 -sticky "ns"
+grid .msg -row 1 -columnspan 2 -sticky "ew" 
+
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 0 -weight 1
+
+# Next, we will develop callback functions, which will be associated with the menu entries.
+# The SetBg procedure will change the background color of the text.
+# ConfigureFont will change the attributes of myFont.
+# InsertImage will insert the named bitmap into the text buffer.
+# The InsertImage procedure has a side effect.
+# If the named bitmap already exists in the text buffer, it will get deleted and a
+# new bitmap will be inserted.
+# The OpenFile procedure will prompt the user for a file and if the user selects a file,
+# its contents will be displayed in the text widget.
+
+# procedure to set text background color
+proc SetBg {} {
+    global background
+    .text configure -bg $background
+}
+
+# procedure to configure the previously created font.
+
+proc ConfigureFont {} {
+    global bold italic underline
+    expr {$bold ? [set weight bold]: [set weight normal]}
+    expr {$italic? [set slant italic]: [set slant roman]}
+    expr {$underline? [set underline 1]: [set underline 0]}
+    font configure myfont -weight $weight -slant $slant -underline $underline
+}
+
+# Procedure to insert images in the text widget
+
+proc InsertImage {image} {
+    catch {destroy .text.$image}    
+    label .text.$image -bitmap $image
+    .text window create end -window .text.$image
+}
+
+# Callback for open menubutton
+
+proc OpenFile {} {
+    global message
+    set file [tk_getOpenFile]
+    if {$file == ""}  {
+        set message "No file selected..."
+        return;
+    }
+    .text delete 0.0 end
+    set fd [open $file "r"] 
+    while {[eof $fd] != 1} {
+        gets $fd line
+        .text insert end $line
+        puts $line
+        update idletasks
+    }
+    close $fd
+}
+
+# Next, we will focus on the menu widget and its components.
+# First, we will create a menu that will become the menu bar for the toplevel window. 
+
+# create toplevel menu
+
+menu .menu -tearoff 0  -type menubar
+
+# Create File menu
+
+set m .menu.file
+
+# We will add a File submenu with open and exit entries.
+# The open entry will prompt the user with an open file dialog.
+# If the user chooses a file, that file will be displayed in the text widget using
+# the OpenFile procedure.
+# The exit menu entry is used to exit the application.#
+# As you can see, Tk does not create a default global binding for the menu entry just
+# by using the -accelerator menu entry option.
+# We have to explicitly create the binding in order for the accelerator to take effect.
+
+menu $m -tearoff 0
+.menu add cascade -label "File" -menu $m -underline 0
+set modifier Meta
+$m add command -label "Open..." -accelerator $modifier+o -command "OpenFile" -underline 0 -command OpenFile 
+bind . <$modifier-o> "OpenFile"
+$m add separator
+$m add command -label "Exit..." -accelerator $modifier+x -command "exit" -underline 0
+bind . <$modifier-x> "exit"
+
+# We next add an Option submenu to the main menu.
+# The Options submenu contains background and font cascade menus.
+# A background cascaded menu contains a group of radio buttons to change the background
+# color of the text widget.
+# The Font cascade menu provides a group of check buttons to manipulate myfont menu attributes.
+
+# Create options menu
+set m .menu.options
+menu $m -tearoff 1
+.menu add cascade -label "Options" -menu $m -underline 0 
+$m add cascade -label "Background" -menu .menu.options.bg -underline 0
+$m add cascade -label "Font" -menu  .menu.options.font -underline 0
+
+# create Radio button cascade menu
+set m .menu.options.bg
+menu $m -tearoff 0
+$m add radio  -label "Red" -background red -variable background -value red \
+    -command SetBg
+$m add radio  -label "Yellow" -background yellow -variable background \
+    -value yellow -command SetBg
+$m add radio  -label "Blue" -background blue -variable background -value blue \
+    -command SetBg
+$m add radio  -label "White" -background white -variable background -value white \
+    -command SetBg
+$m invoke 3
+
+# Insert option button cascade Menu
+set m .menu.options.font
+menu $m -tearoff 0
+$m add check -label "Bold" -variable bold -command ConfigureFont
+$m add check -label "Italic" -variable italic -command ConfigureFont
+$m add check -label "underline" -variable underline -command ConfigureFont
+$m invoke 3
+
+# As you can see from the above code, the entries in a menu can be configured to have
+# different backgrounds and foregrounds, as well as other standard widget options.
+
+# Next, we will proceed to add yet another cascade entry to the main menu to insert
+# bitmaps into the text widget. As explained earlier, these bitmap entry commands have
+# a side effect-that only one instance of these bitmaps can be present in the text
+# widget at any given time.
+
+# Create insert menu option
+set m .menu.insert
+menu $m -tearoff 0
+.menu add cascade -label "Insert" -menu $m -underline 0
+foreach i {info questhead error} {
+    $m add command -bitmap $i -command "puts {You invoked the $i bitmap}" -hidemargin 1 -command "InsertImage $i"
+}
+$m entryconfigure 2 -columnbreak 1
+
+# One thing to observe from the above code snippet is that entries in a menu can be
+# arranged in a tabular fashion using the entryconfigure command with the -columnbreak option.
+
+# Finally, we will attach the menu to the toplevel widget to make it the default menu bar.
+# We also make use of the <<MenuSelect>> virtual event, which gets fired when any menu or
+# its entries are selected.
+# The <<MenuSelect>> virtual event will display a message in the message label,
+# which indicates that a particular entry has been selected.
+
+# Attach the menu to the toplevel menu
+. configure -menu .menu
+
+#  Bind  global tags
+bind Menu <<MenuSelect>> {
+    global message
+    if {[catch {%W entrycget active -label} label]} {
+	set label "    "
+    }
+    set message "You have selected $label..."
+}
+

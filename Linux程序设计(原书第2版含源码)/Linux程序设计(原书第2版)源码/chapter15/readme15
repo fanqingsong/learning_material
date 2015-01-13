@@ -1,0 +1,10 @@
+Chapter 15  -  Tcl: Tool Command Language.
+
+
+hello.tcl   - yes, a script that prints "Hello World".
+
+hello2.tcl  - same again, but it's now a script that will run from the command line.
+
+concord.tcl - a script that repares a concordance of a text file.
+
+socket.tcl  - a program that uses sockets from Tcl Versions 7.5 and beyond.

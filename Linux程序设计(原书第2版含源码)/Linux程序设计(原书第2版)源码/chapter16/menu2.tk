@@ -1,0 +1,70 @@
+#!/usr/bin/wish
+# Let's start off with the basics needed to draw circles and squares.
+
+wm title . "Menubutton demonstration"
+wm iconname . "Menubutton demo"
+
+# Initial parameters to draw circles and squares
+set x 50
+set y 50
+set sqsize 30
+
+# procedure to draw canvas objects
+proc AddObject {type} {
+    global x y sqsize sqsize  fillc
+    if {$type == "circle"} {
+	.c create oval $x $y [expr $x+$sqsize] [expr $y+$sqsize] \
+	    -tags item -fill $fillc
+    } elseif {$type == "square"} {
+	.c create rectangle $x $y [expr $x+$sqsize] [expr $y+$sqsize] \
+	    -tags item -fill $fillc
+    }
+    incr x 10
+    incr y 10
+}
+
+# Next, we create a canvas with a frame, menu button and a dismiss button.
+# The Frame widget will hold the menu and dismiss buttons.
+# We pack all the elements to create the main user interface.
+
+# create the basic User Interface canvas, 2 menu buttons and a dismiss button
+set c [canvas .c -width 200 -height 200 -bd 2 -relief ridge]
+
+frame .f -bd 2
+
+menubutton .f.m1 -menu .f.m1.menu -text "Draw" -relief raised -underline 0 \
+    -direction left
+button .f.exit -text "Dismiss" -command "exit"
+
+# manage the widgets using the grid geometry manager.
+pack .c -side top -fill both -expand yes
+pack .f -side top -fill x -expand yes
+
+pack .f.m1 .f.exit -side left  -expand 1
+
+# Finally, we add a menu to the menu button.
+# We create a menu and add three entries to it: two command entries to draw circle
+# and square objects, and a cascade widget for fill color selection.
+
+set m .f.m1.menu
+menu $m -tearoff 0
+
+$m add command -label "Circle" -command "AddObject circle" -accelerator "Meta-c"
+bind . <Meta-c> "AddObject circle"
+$m add command -label "Square" -command "AddObject square" -accelerator "Meta-s"
+bind . <Meta-s> "AddObject square"
+$m add separator
+$m add cascade -label "Fill Color.." -menu .f.m1.cascade
+
+set m  .f.m1.cascade
+menu $m -tearoff 0
+$m add radio  -label "Red" -background red -variable background -value red \
+    -command "set fillc red"
+$m add radio  -label "Yellow" -background yellow -variable background \
+    -value yellow -command "set fillc yellow"
+$m add radio  -label "Blue" -background blue -variable background -value blue \
+    -command "set fillc blue"
+$m add radio  -label "White" -background white -variable background -value white \
+    -command "set fillc white"
+$m invoke 1
+

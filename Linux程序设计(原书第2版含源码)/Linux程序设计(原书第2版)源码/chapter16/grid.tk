@@ -1,0 +1,13 @@
+#!/usr/bin/wish -f
+
+set row 0
+foreach item {name email address phone} {
+  label .$item-label -text "${item}:" 
+  entry .$item-entry  -width 20
+  grid .$item-label -row $row -column 0 -sticky e
+  grid .$item-entry -row $row -column 1 -columnspan 2 -sticky "ew"
+  incr row
+}
+
+grid columnconfigure . 1 -weight 1
+

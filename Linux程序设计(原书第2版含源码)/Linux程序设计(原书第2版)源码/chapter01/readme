@@ -1,0 +1,14 @@
+Chapter 1 - Getting Started.
+
+
+hello.c           - First of many "Hello World" programs in this book.
+
+fred.c and bill.c - Source code files containing static library functions.
+
+lib.h             - Library header file declaring the functions in fred.c and bill.c.
+
+program.c         - Program that uses lib.h.
+
+lib.a             - Result of archiving the functions in fred.c and bill.c.
+
+

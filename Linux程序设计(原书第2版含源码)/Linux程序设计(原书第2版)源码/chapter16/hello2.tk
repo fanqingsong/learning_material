@@ -1,0 +1,8 @@
+#!/usr/bin/wish -f
+
+option add *b.activeForeground brown
+pack [button .b -text "Hello\nWorld!!!" \
+                -justify center \
+                -width 20 \
+                -command {puts "Hi"}]
+

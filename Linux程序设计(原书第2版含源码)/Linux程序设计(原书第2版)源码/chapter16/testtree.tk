@@ -1,0 +1,82 @@
+#!/usr/bin/wish
+
+# Simple application showing the use of tree mega widget.
+
+lappend auto_path /usr/local/lib/tk
+package require tree
+
+# Now we have to inform the tree widget on parent and tail routines.
+# By default, they are normal file dirname and tail routines, because we are displaying a root file system.
+
+
+# Create utility procs that tree widget uses to query parent and tail components of a node.
+
+proc parent {item} {
+   return [file dirname $item]
+}
+proc tail {item} {
+   return [file tail $item]
+}
+
+# We create images to display directory and file images.
+
+# Create images that we use to display directory and a normal file.
+
+image create photo idir -data {
+    R0lGODdhEAAQAPIAAAAAAHh4eLi4uPj4APj4+P///wAAAAAAACwAAAAAEAAQAAADPVi63P4w
+    LkKCtTTnUsXwQqBtAfh910UU4ugGAEucpgnLNY3Gop7folwNOBOeiEYQ0acDpp6pGAFArVqt
+    hQQAO///
+}
+image create photo ifile -data {
+    R0lGODdhEAAQAPIAAAAAAHh4eLi4uPj4+P///wAAAAAAAAAAACwAAAAAEAAQAAADPkixzPOD
+    yADrWE8qC8WN0+BZAmBq1GMOqwigXFXCrGk/cxjjr27fLtout6n9eMIYMTXsFZsogXRKJf6u
+    P0kCADv/
+}
+
+# Next, we create a routine that dynamically adds the children of the node
+# if the node happens to be the directory when the user double clicks on the item.
+
+
+# Dynamically add entries to the tree widget.
+
+proc AddDir {wid dir} {
+    if ![file isdirectory $dir ] {
+	return;
+    }
+    foreach file [exec ls $dir] {
+	set file [file join $dir $file]
+	if [file isdirectory $file] {
+	    tree::additem $wid [file join $dir $file] -image idir
+	} else {
+	    tree::additem $wid [file join $dir $file] -image ifile
+	}	    
+    }
+}
+
+# The main process creates the tree and sets up the Double click bindings for the tree widget. 
+# It also adds the  toplevel / node to the tree.
+
+
+# main procedure
+
+# Create tree wiget and set up bindings.
+
+tree::create .t -width 150 -height 400
+
+# open a node when gets double clicked.
+
+.t bind x <Double-1> {
+    puts "Called"
+    set child [tree::labelat %W %x %y]
+    AddDir %W $child
+    tree::openbranch %W $child
+}
+
+
+AddDir .t /
+
+# mange the wiget
+
+pack .t -fill both -expand 1
+update
+

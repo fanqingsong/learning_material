@@ -1,0 +1,24 @@
+Chapter 19  -  Programming for the Internet - HTML.
+
+
+simple.html  -  a simple html document.
+
+format.html  - a document with text formatting.
+
+lists.html  -  a document with unordered, numbered and definition lists.
+
+images.html  -  a document with images of beer.
+
+table1.html  -  a document with a simple table.
+
+table2.html  -  a document containing a table with formatting around each cell.
+
+anchor1.html, anchor2.html  -  two documents with anchors to each other and to themselves.
+
+anchor3.html  -  a document which uses an image as an anchor.
+
+link.html  -  a document with links to other sites.
+
+fuchsia.html  -  a document with client-side maps and server-side includes.
+
+parts  -  a directory containing html documents that describe the parts of a fuchsia.

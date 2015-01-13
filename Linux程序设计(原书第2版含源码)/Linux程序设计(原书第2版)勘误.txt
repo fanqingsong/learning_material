@@ -1,0 +1,44 @@
+《Linux 程序设计（原书第2版）》勘误：
+
+P24 -4行 red -〉 read
+P39 8行 上面 -〉 下面
+P44 -2行 lastest-set -〉 lastest_set
+P47 10行 原文应改为：“现在轮到export1。在这个脚本程序的末尾，我们将调用 export2。”
+P47 14行 export2 -〉 ./export2
+P47 16行 $ export1 -〉 $ ./export1
+P78 -6行 fides -〉 fildes
+P81 -10行 moed -〉 mode
+P102 6行 SO -〉 ISO
+P103 4行 args -〉 ./args
+P105 7行 argopt -〉 ./argopt
+P111 17行 gmitime -〉 gmtime
+P119 -3行 utsname*name -〉 utsname *name
+P122 9行 LOG_TNFO -〉 LOG_INFO
+P138 10行 termois.h -〉 termios.h
+P140 9行 c_iflag -〉 c_oflag
+P154 -3行 (int *) char_to_terminal -〉 char_to_terminal
+P164 -14行 inndtr -〉 innstr
+P187 23行 draw menu -〉 draw_menu
+P241 -14行 -gdbm -〉 -lgdbm
+P270 -14行 tyo -〉 two
+P298 5行 Linuix -〉 Linux
+P317 -7 -9 -12;
+P318 10 27;
+P319 6 SIGALARM -〉 SIGALRM
+P337 -11行 Weee... -〉 Wheeee...
+P346 5行 调都能用 -〉 调用都能
+P369 17行 readud -〉 read
+P373 -25行 只读 -〉 只写
+P404 -4行 sixe_t -〉 size_t
+P405 5行 TPC_CREAT -〉 IPC_CREAT
+P406 -4行 shnget -〉 shmget
+P589 4行 \ -〉 / 
+P640 7行 . -〉 /
+P642 3行
+P655 2 -8 -4
+P663 22行
+P668 -23行
+P672 -7行
+P679 15行
+P680 －2行 ( -〉 _
+P714 25行 开头添加 }

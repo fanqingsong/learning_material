@@ -1,0 +1,22 @@
+#!/usr/bin/wish -f
+
+# First, set up the look of the login window. We also define a global loginName variable.
+
+set loginName "timB"
+
+label .name -text "Login:"
+entry .nameEntry -textvariable loginName 
+label .passwd -text "Password:"
+entry .passwdEntry -textvariable passwd -show *
+
+# Then we select all the text from .nameEntry.
+
+.nameEntry selection from 0
+.nameEntry selection to end
+
+# Lastly, we arrange the widgets on the screen-we'll explain it later!
+
+grid .name  -row 0 -column 0 -sticky "w" 
+grid .passwd -row 1 -column 0 -sticky "w"
+grid .nameEntry -row 0 -column 1 -columnspan 2 -sticky "W"
+grid .passwdEntry -row 1  -column 1 -columnspan 2 -sticky "W"

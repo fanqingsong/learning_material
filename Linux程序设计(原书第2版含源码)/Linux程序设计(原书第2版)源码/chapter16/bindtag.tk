@@ -1,0 +1,28 @@
+#!/usr/bin/wish -f
+
+set count 0
+button .b -text "Tick(ms)"
+label .ticker -textvariable count
+pack .b .ticker
+
+bind timer <ButtonPress-1> {
+    set count 0
+    StartTimer %W 
+}
+ 
+bind timer <ButtonRelease-1> {
+    StopTimer %W 
+}
+ 
+proc StartTimer { widget } {
+    global pending count
+    incr count 200
+    set pending [after 200 [list StartTimer $widget]]
+}
+ 
+proc StopTimer { widget } {
+    global pending
+    after cancel $pending
+}
+ 
+bindtags .b [linsert [bindtags .b] 0  timer]

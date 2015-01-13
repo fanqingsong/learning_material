@@ -1,0 +1,263 @@
+#!/usr/bin/wish -f
+
+# Usage: Invoke this file using format wish 'thisfilename' bitmapfile
+
+# global varible used to store information after  parsing the bitmap file
+global bitmapWidth  bitmapHeight  bitmapName
+global bitmapData bitmapArray
+
+# variable to display messages on the status window to inform the user 
+# what is happening.
+global status
+
+proc  buildInterface args {
+  # create a menubar
+  frame .menu -relief raised -bd 2
+
+  # add file menu item
+  set m .menu.file.m
+  menubutton .menu.file -text "File" -menu $m -underline 0
+  menu $m
+  $m add command -label "Load File..." -command {loadFile} \
+                 -accelerator Cotrol+f\
+	         -underline 0
+
+  # This is Tk's way of adding global bindings
+  bind . <Control-a> {loadFile}
+  $m add command -label "Exit" -command {exit} \
+                 -accelerator Control+x -underline 1 
+  bind . <Control-x> {exit}
+ 
+  # add help menu item..
+  set m .menu.help.m
+  menubutton .menu.help -text "Help" -menu $m -underline 0
+  menu $m
+  $m add command -label "On Version " -command {displayVersion}  -underline 0
+
+  pack .menu.file -side left 
+  # pack help to the right of the menu bar
+  pack .menu.help -side right
+
+  # build a status bar more like motif's mainwindow to show all 
+  # the application status messages.
+  label .status  -justify left  -relief sunken -bd 2 -textvariable status
+
+  # build canvas and scroll bars to enable canvas scrolling
+  set c .canvas
+  scrollbar .hScroll -orient horiz -command "$c xview"
+  scrollbar .vScroll -orient vertical -command "$c yview"
+
+
+  canvas $c -width 100m -height 100m  -scrollregion {0m 0m 200m 200m} \
+      -xscrollincrement 5m -yscrollincrement 5m -relief sunken -bd 2 \
+      -xscrollcommand  ".hScroll set" -yscrollcommand ".vScroll set" \
+      -takefocus 1
+
+  grid propagate . 1
+  grid .menu -row 0 -columnspan 2  -sticky "ew"
+  grid $c -row 1 -column 0      -sticky "news"
+  grid .vScroll -row 1 -column 1  -sticky "ns"
+  grid .hScroll -row 2 -column 0 -sticky "ew"
+  grid .status -row 3 -column 0 -columnspan 2  -sticky "ew"  
+  grid columnconfigure . 0 -weight 1
+  grid rowconfigure . 1 -weight 1
+}
+
+# Develop a routine to display messages in the status window.
+# After 2 seconds the message automatically disappears.
+proc setStatus {msg {time 2000}} {
+  global status
+  set status "$msg"
+  after $time  "global status; set status \"\""
+}
+
+# Dialog box code to load a bitmap file to display
+# Also shows the  user how to create interfaces using dialog boxes.
+proc loadFile args {
+  if [winfo exists .load] {
+	wm deiconify .load
+	raise .load
+	return
+  }
+  toplevel .load
+  wm title .load "Load File..."
+  label .load.l -text "Enter File Name:"
+  entry .load.e 
+  frame .load.buttons
+  grid propagate .load
+  grid .load.l -row 0 -column 0 
+  grid .load.e -row 0 -column 1 -columnspan 3 -sticky "ew"
+  bind .load.e <Return> \
+	  {wm withdraw .load; parseAndDisplayBitmapFile [.load.e get]}
+  grid .load.buttons -row 1 -columnspan 4 -sticky "news"
+  grid columnconfigure .load 1 -weight 1
+
+  button .load.buttons.load -text "Load" \
+	  -command  { wm withdraw .load; \
+                      parseAndDisplayBitmapFile [.load.e get]}
+  button .load.buttons.cancel -text "Cancel" -command {wm withdraw .load}
+  pack .load.buttons.load .load.buttons.cancel -side left -expand 1
+  raise .load
+}  
+
+# Dialog box code to display error messages!!
+# Very powerful mechanism: three lines to display 
+# error, info and question dialogs.
+proc showMessage {msg {type error}} {
+  after idle {
+	.error.msg configure -wraplength 4i
+  }
+  # use tk's internal dialog box....
+  tk_dialog .error "Error" "$msg" $type 0 OK
+}
+
+
+# Call back for the version menubutton on the Help menu.
+proc displayVersion args {
+  showMessage "Tk Bitmap 0.1a.....\n by \n hacker@tcl.tk" info
+}
+
+# Routine which parses the bitmap file and calls the display routine.
+# This routine also fills up the global variables
+proc parseAndDisplayBitmapFile {fileName} {
+  global  bitmapData bitmapWidth bitmapHeight bitmapName bitmapArray;
+  # unset the data before loading a file. A file migth already be displayed
+  catch {unset  bitmapData bitmapWidth bitmapHeight bitmapName bitmapArray}
+  if [catch {open $fileName "r"} res] {
+	showMessage "$res"
+	return
+  } else {
+	set fd $res
+  }
+  set readingData 0
+  set inComment 1
+  while {[gets $fd line] != -1} {
+	switch -regexp -- $line {
+	  "^\#define" {
+		set args [split [lindex $line 1] _]
+		switch -exact -- [lindex $args end] {
+		  "width" { 
+			set bitmapWidth [lindex $line end]
+			set bitmapName [lindex $args 0]
+		  }
+		  "height"  {
+			set bitmapHeight [lindex $line end]
+			set bitmapName [lindex $args 0]
+		  }
+		  {default} { 
+		  }
+		}
+	  }
+	  {\ *\/\*.*\*\/\ *$} {
+		# A complete c-comment
+	  }
+	  {\/\*.*[^\/]\ *$} {
+		# c-comment beginning
+		set inComment 1
+	  }
+	  {.*\*\/\ *$} {
+		if $inComment {
+		  # c-comment end.
+		  set inComment 0
+		  continue;
+		}
+		showMessage "2 Unknow Data $line while parsing $fileName";
+		return
+	  }
+	  "^static unsigned char" -
+	  "^static char" {
+		set readingData 1
+		lappend bitmapData [lindex [split $line \{] 1]
+	  }
+	  {^\ *$} {
+		# Blank lines, ignore them
+	  }
+	  {default} {
+		if $readingData {
+		  set bitmapData [concat $bitmapData $line]
+		} else {
+		  if $inComment continue;
+		  showMessage " Unknow Data $line while parsing $fileName";
+		  return
+		}
+	  }
+      }
+  }
+  set bitmapData  [split $bitmapData "\{,\};"]
+  set newData ""
+  # go through all the data and basically remove   \{\},;  from data.
+  foreach index $bitmapData {
+	if [regexp -- {.*(0x|0X).*} $index ] {
+	  lappend newData $index
+	}
+  }
+  set bitmapData $newData
+  setStatus "Done parsing the file $fileName"
+  # parsing is done call the actual display routine.
+  displayBitmap
+}
+
+
+
+# The core routine to display the bitmap data 
+# This code is very slow on large bitmaps. Improvements can be made by
+# writting it in C. 
+proc displayBitmap  args {
+  global bitmapData bitmapWidth bitmapHeight bitmapName bitmapArray;
+  set c .canvas
+  # delete the bitmap if one already exists on the canvas
+  catch {
+	$c delete bitrects
+  } res
+  # Draw small rectangles depending on bitmap size and attach tags to them
+  for {set i 0} {$i < $bitmapHeight} {incr i } {
+    for {set j 0} {$j < $bitmapWidth} {incr j } {
+      $c create rectangle  [expr $j*3+3]m [expr $i*3+3]m \
+		  [expr [expr $j+1]*3+3]m [expr [expr $i+1]*3+3]m  \
+		  -tags [list "${i}-${j}" bitrects]  -outline red
+    }
+  }
+  # Read the bitmapData and generate the bitmapArray. 
+  # Perhaps all the 4 for loops below
+  # can be done into 2 but for clarity this is not done 
+  for {set i 0} {$i < $bitmapHeight} {incr i} {
+    for {set j 0} {$j < [expr ($bitmapWidth+7)/8]} {incr j} {
+      set bitmapArray($i,$j) [lindex $bitmapData \
+                              [expr ($i*(($bitmapWidth+7)/8))+$j]]
+    }
+  }
+  for {set i 0} {$i < $bitmapHeight} {incr i } {
+    for {set j 0} {$j < $bitmapWidth} {incr j } {
+      set xIndex [expr $j/8]
+	  # might have to do 0x80>> [expr $j%8] for some systems.
+	  # depending upon lsb or msb...
+      if {[expr ($bitmapArray($i,$xIndex))&[expr 0x01 << [expr $j%8]]]} {
+		$c itemconfigure "$i-$j" -fill blue
+      }
+    }
+	setStatus "Rendering Bitmap....."
+	update
+  }
+  setStatus "Bitmap done...."
+}
+
+# Main application code.
+buildInterface
+
+# parse command line arguments and if the user supplies a bitmap file
+# then display it;
+if {$argc >=1} {
+  parseAndDisplayBitmapFile [lindex $argv 0]
+} else {
+  update
+  loadFile
+}
+
+
+
+
+
+
+
+
+

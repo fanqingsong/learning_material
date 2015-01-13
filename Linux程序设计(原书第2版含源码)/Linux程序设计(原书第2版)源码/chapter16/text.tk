@@ -1,0 +1,85 @@
+#!/usr/bin/wish -f
+
+# First of all, we create a vertical scrollbar which we attach to the text widget.
+# Then we pack them side by side and tell the text window to expand to fill the available
+# window space.
+# We make sure that the text window continues to fill the window even when resizing occurs
+# by telling the packer that, if there's extra vertical space, to expand both the widgets
+# to occupy that space.
+# However, if some extra horizontal space is made available, only the text widget will be
+# expanded.
+
+scrollbar .y -command ".t yview"
+text .t -wrap word -width 80 -spacing1 1m -spacing2 0.5m -spacing3 1m \
+        -height 25 -yscrollcommand ".y set"
+
+pack .t -side left -fill both -expand yes
+pack .y -side left -fill y
+
+# Next, we want to create embedded windows.
+# We don't have to worry about managing them because the text widget will look after
+# them internally.
+
+set image [image create photo -file picture.gif -width 200 -height 200]
+label .t.l -image $image
+button .t.b -text "Hello World!" -command "puts Hi"
+ 
+
+# Then we configure all the tags that we're going to associate with the text window.
+
+.t tag configure bold -font -*-Courier-Bold-O-Normal--*-120-*-*-*-*-*-*
+.t tag configure yellowBg -background yellow
+.t tag configure blueFg -foreground blue
+.t tag configure yellowBgBlueFg -background yellow -foreground red
+.t tag configure underline -underline 1
+.t tag configure raised -relief raised -borderwidth 2
+.t tag configure sunken -relief sunken -borderwidth 2
+.t tag configure center -justify center
+.t tag configure left  -justify left
+.t tag configure right -justify right
+.t tag configure super -offset 4p 
+.t tag configure sub -offset -2p
+.t tag bind colorOnEnter <Any-Enter> ".t tag configure colorOnEnter \
+                                       -background yellow"
+.t tag bind colorOnEnter <Any-Leave> ".t tag configure colorOnEnter \
+                                       -background {}"
+
+# Having configured the tags, we now insert text with those tags to show off the widget's
+# potential, if not our graphic design.
+
+.t insert end "Tk text widget is so versatile that it can support many \
+               display styles:\n"
+.t insert end "Background: " bold
+.t insert end " You can change the " 
+.t insert end "background"  yellowBg
+.t insert end " or "
+.t insert end "foreground" blueFg
+.t insert end " or " 
+.t insert end "both" yellowBgBlueFg
+.t insert end "\nUnderlining. " bold
+.t insert end "You can " 
+.t insert end "underline" underline
+.t insert end "\n3-D effects: " bold
+.t insert end "You can make the text appear "
+.t insert end "raised" raised
+.t insert end " or "
+.t insert end "sunken" sunken
+.t insert end " Text"
+.t insert end "\nJustification" bold
+.t insert end "\nright justification" right
+.t insert end "\n center justification " center
+.t insert end "\nleft justification " left
+.t insert end "\nSuper and Subscripts: " bold
+.t insert end "Text can be "
+.t insert end "super" super
+.t insert end " or "
+.t insert end "sub" sub
+.t insert end " scripted"
+.t insert end "\nBindings: " bold
+.t insert end "Text can be made to react to the user interactions" colorOnEnter
+.t insert end "\nEmbedded Windows: " bold
+.t insert end "You can insert labels "
+.t window create end -window .t.l
+.t insert end " or any kind of windows "
+.t window create end -window .t.b 
+

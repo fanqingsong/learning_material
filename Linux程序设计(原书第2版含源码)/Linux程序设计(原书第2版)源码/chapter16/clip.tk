@@ -1,0 +1,12 @@
+#!/usr/bin/wish -f
+interp create foo 
+
+foo eval {
+    load {} Tk
+    clipboard clear
+    clipboard append -type STRING "Clipboard Data"
+    
+}
+       interp delete foo
+puts "[selection get -selection CLIPBOARD]"
+

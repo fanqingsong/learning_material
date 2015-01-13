@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>A Simple HTML Form Document</TITLE>
+</HEAD>
+<BODY>
+<H1>A demonstration of an HTML form</H1>
+<P>
+
+</P>
+</BODY>
+</HTML>
+
+<! Now for the FORM element which fills the rest of the page.
+ It starts with the TEXT and PASSWORD type elements. >
+
+<FORM ACTION="/cgi-bin/cgi1.sh" METHOD=POST>
+
+Enter your name: <INPUT NAME=name TYPE=TEXT SIZE=20 MAXLENGTH=40>
+and password: <INPUT NAME=passwd TYPE=PASSWORD SIZE=8 MAXLENGTH=8><BR>
+<BR><BR>
+
+<! For all the different parts of the world the customer might want to visit,
+ we provide a series of checkboxes. >
+
+Please indicate which areas of the world you would like
+to visit:<BR>
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="1">Asia
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="2">Africa
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="3">North America
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="4">South America
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="5">Antarctica
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="6">Europe
+<INPUT TYPE="CHECKBOX" NAME=cb VALUE="7">Australasia
+<BR><BR>
+
+<! To save a little time, you can copy and modify the last section to use radio
+ buttons to find out the customer's home continent. >
+
+Please indicate in which area of the world you
+live:<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="1">Asia<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="2">Africa<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="3" CHECKED>North America<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="4">South America<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="5">Antarctica<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="6">Europe<BR>
+<INPUT TYPE="RADIO" NAME=rb VALUE="7">Australasia<BR>
+<BR><BR>
+
+<! Now we use the <SELECT> tags for finding out the user's modem speed. >
+
+Please indicate your modem speed:
+<SELECT NAME="Speed">
+<OPTION value="none">No modem
+<OPTION value="vslow">9600 or slower
+<OPTION value="slow">14400
+<OPTION SELECTED value="OK">28800
+<OPTION value="quick">better than 28000
+</SELECT>
+<BR><BR>
+
+<! Use the TEXTAREA input type for the customer's address. >
+
+Please enter your address:<BR>
+<TEXTAREA NAME="address" ROWS=5 COLS=50>
+</TEXTAREA>
+<BR><BR>
+
+<! Lastly, the Submit and Reset buttons and the closing <FORM> tag. >
+
+<INPUT TYPE=RESET VALUE="Clear fields">
+<CENTER>
+<INPUT TYPE=SUBMIT VALUE="Send Information">
+</CENTER>
+</FORM>
+
