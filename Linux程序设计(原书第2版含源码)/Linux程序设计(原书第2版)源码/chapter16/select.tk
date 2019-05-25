@@ -1,0 +1,18 @@
+#!/usr/bin/wish -f
+interp create foo 
+
+foo eval {
+    load {} Tk
+    text .t 
+    pack .t
+    .t insert end "Hello World!"
+    .t tag add sel  0.0 end
+    selection own
+    .t insert end "\n"
+#   .t insert end "[selection get -selection SECONDARY]"
+    .t insert end "[selection get ]"
+
+    
+}
+puts "[selection get]"
+

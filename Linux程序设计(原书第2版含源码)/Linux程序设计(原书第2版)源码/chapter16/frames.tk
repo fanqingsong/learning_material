@@ -1,0 +1,8 @@
+#!/usr/bin/wish -f
+
+. config -bg steelblue
+
+foreach frame {sunken raised flat ridge groove} {
+   frame .$frame -width 0.5i -height 0.5i -relief $frame  -bd 2
+   pack .$frame -side left -padx 10 -pady 10
+}

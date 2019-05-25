@@ -1,0 +1,61 @@
+#!/usr/bin/wish -f
+
+# After the script header and two global variables, we create a check button to control
+# the selection of a favorite programming language.
+
+set lang tcl
+set state 1
+
+checkbutton .lan -text "Language" -command {changeState} -relief flat \
+                 -variable state -onvalue 1 -offvalue 0
+
+# Next, we create a radio button panel, with one button for each language.
+
+radiobutton .c -text "C" -variable lang -value c -justify left 
+radiobutton .tcl -text "Tcl" -variable lang -value tcl -justify left 
+radiobutton .perl -text "Perl" -variable lang -value perl -justify left
+ 
+
+# We need two push buttons to control the output.
+
+button .show -text "Show Value" -command showVars
+button .exit -text "Exit" -command {exit}
+
+# Having configured the buttons, we need to arrange them on screen.
+# It's time for a bit of geometry management.
+
+grid .lan  -row 1 -column 0 -sticky "w"
+grid .c    -row 0 -column 1 -sticky "w"
+grid .tcl  -row 1 -column 1 -sticky "w"
+grid .perl -row 2 -column 1 -sticky "w"
+grid .show -row 3 -column 0 -sticky "w"
+grid .exit -row 3 -column 1 -sticky "w"
+
+# The check button needs a callback procedure, changeState.
+# This is registered by the check button's -command option.
+
+proc changeState args {
+    global state
+    if {$state == "0"} {
+        catch {
+            .c config -state disabled
+            .tcl config -state disabled
+            .perl config -state disabled
+        }
+    } else {
+        .c config -state normal
+        .tcl config -state normal
+        .perl config -state normal
+    }
+}
+
+# The push buttons need a similar procedure, showVars.
+
+proc showVars args {
+    global state lang
+    if {$state == "0"} {
+        puts "No Language is selected"
+    } else {
+        puts "The Language selected is $lang"
+    }
+}

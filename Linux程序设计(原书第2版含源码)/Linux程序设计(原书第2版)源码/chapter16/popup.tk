@@ -1,0 +1,54 @@
+#!/usr/bin/wish
+# First, create a menu and add a binding to the toplevel window associated with
+# the menu so that the menu will get posted when the user clicks on the window
+# using the third mouse button.
+
+set w .menu
+catch {destroy $w}
+menu $w
+bind . <Button-3> {
+    tk_popup .menu %X %Y
+}
+
+# The rest of the example creates menu entries to show that popup menus
+# have exactly the same capabilities as those of regular menus.
+
+# Add menu entries
+$w add command -label "Print hello" \
+	-command {puts stdout "Hello"} -underline 6
+
+$w add command -label "Red" -background red
+
+# Add a  Cascade menu
+set m $w.cascade
+
+$w add cascade -label "Cascades" -menu $m -underline 0
+menu $m -tearoff 0
+$m add cascade -label "Check buttons" \
+      -menu $w.cascade.check -underline 0
+set m $w.cascade.check
+menu $m -tearoff 0
+$m add check -label "Oil checked" -variable oil
+$m add check -label "Transmission checked" -variable trans
+$m add check -label "Brakes checked" -variable brakes
+$m add check -label "Lights checked" -variable lights
+$m add separator
+$m invoke 1
+$m invoke 3
+
+$m add cascade -label "Radio buttons" \
+      -menu $w.cascade.radio -underline 0
+set m $w.cascade.radio
+menu $m -tearoff 0
+$m add radio -label "10 point" -variable pointSize -value 10
+$m add radio -label "14 point" -variable pointSize -value 14
+$m add radio -label "18 point" -variable pointSize -value 18
+$m add radio -label "24 point" -variable pointSize -value 24
+$m add radio -label "32 point" -variable pointSize -value 32
+$m add sep
+$m add radio -label "Roman" -variable style -value roman
+$m add radio -label "Bold" -variable style -value bold
+$m add radio -label "Italic" -variable style -value italic
+$m invoke 1
+$m invoke 7
+

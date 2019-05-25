@@ -1,0 +1,37 @@
+#!/usr/bin/wish -f
+
+# First we create the user-interface elements.
+
+scrollbar .h -orient horizontal -command ".list xview"
+scrollbar .v  -command ".list yview"
+listbox .list -selectmode single -width 20 -height 10 \
+              -setgrid 1 -xscroll ".h set" -yscroll ".v set"
+label .label -text "File Selected:" -justify left 
+entry .e -textvariable fileSelected
+ 
+
+# To give widgets that Motif-ish look and feel, we use the grid geometry manager.
+
+grid .list -row 0 -column 0 -columnspan 2 -sticky "news"
+grid .v -row 0 -column 2 -sticky "ns"
+grid .h -row 1 -column 0 -columnspan 2 -sticky "we"
+grid .label -row 2 -column 0 
+grid .e -row 3 -column 0  -columnspan 3 -sticky "we" 
+
+grid columnconfigure . 0 -weight 1
+grid rowconfigure . 0 -weight 1
+
+# We initialize the list box with the contents of the current directory.
+
+foreach file [glob *] {
+    .list insert end $file
+}
+
+# Lastly, we bind an event handler to the list box to make it react to the release of
+# the mouse-button 1. This corresponds to the left mouse-button for right-handed users
+# and vice versa for left-handed users. We'll continue to call it mouse button 1 in
+# this section as this is the convention used in the code.
+
+bind .list <ButtonRelease-1> \
+    {global fileSelected;set fileSelected [%W get [%W curselection]]}
+

@@ -1,0 +1,13 @@
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\*\shell\cmdhere]
+@="Cmd&Here"
+
+[HKEY_CLASSES_ROOT\*\shell\cmdhere\command]
+@="cmd.exe /c start cmd.exe /k pushd \"%L\\..\""
+
+[HKEY_CLASSES_ROOT\Folder\shell\cmdhere]
+@="Cmd&Here"
+
+[HKEY_CLASSES_ROOT\Folder\shell\cmdhere\command]
+@="cmd.exe /c start cmd.exe /k pushd \"%L\""

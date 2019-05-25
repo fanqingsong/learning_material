@@ -1,0 +1,42 @@
+#!/usr/bin/wish -f
+
+# First we create the canvas and then some objects to display on it.
+
+set c [canvas .c -width 400 -height 300 -relief sunken -bd 2]
+
+set image [image create photo -file caption.gif -width 500 -height 200]
+$c create image 150 150 -anchor center -image $image -tags item
+
+$c create text 150 150 -text " Image Object"  -fill white
+
+$c create text 10 10 -text " Move any Item \n using Mouse " -justify center \
+                     -anchor nw -tags item  -fill red
+$c create rectangle 200 10  250 40 -fill yellow -outline blue -tags item
+
+pack .c
+
+# Next, we bind the canvas so that we can operate on the items shown on it.
+# We'll define the itemDragStart and dragItem  procedures next.
+
+bind $c <1> "itemDragStart $c %x %y"
+bind $c <B1-Motion> "dragItem $c %x %y"
+
+# For the procedure's benefit, we need to define two global variables, lastX and lastY.
+
+global lastX lastY
+
+# event handler for the <1> event
+proc itemDragStart {c x y} {
+    global lastX lastY
+    set lastX [$c canvasx $x]
+    set lastY [$c canvasy $y]
+}
+# event handler for the <B1-Motion> event
+proc dragItem {c x y} {
+    global lastX lastY
+    set x [$c canvasx $x]
+    set y [$c canvasy $y]
+    $c move current [expr $x-$lastX] [expr $y-$lastY]
+    set lastX $x
+    set lastY $y
+}

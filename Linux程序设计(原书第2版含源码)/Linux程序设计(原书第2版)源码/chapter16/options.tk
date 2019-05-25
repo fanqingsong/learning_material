@@ -1,0 +1,28 @@
+#!/usr/bin/wish -f
+
+# We set the global variable state equal to 1.
+# We create a check button and an options menu.
+# These are packed side by side.
+
+set state 1
+
+checkbutton .lan -text "Language" -command {changeState} -relief flat \
+                 -variable state  -onvalue 1 -offvalue 0
+set optMenu [tk_optionMenu .opt lang Tcl C Lisp C++]
+
+pack .lan .opt -side left
+
+# now make C As the default using lang variable
+set lang C++
+
+# We need a procedure to handle the application's event.
+
+proc changeState {} {
+    global state 
+    if $state {
+        .opt config -state normal
+    } else {
+        .opt config -state disabled
+    }
+}
+

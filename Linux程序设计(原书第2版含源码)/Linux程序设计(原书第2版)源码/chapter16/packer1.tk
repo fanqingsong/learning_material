@@ -1,0 +1,7 @@
+#!/usr/bin/wish -f
+
+foreach i  {1 2 3 4 } {
+    button .b$i -text "Btn $i"
+    pack .b$i -side left -padx 2m -pady 1m
+}
+

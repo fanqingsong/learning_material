@@ -1,0 +1,478 @@
+#!/usr/bin/wish -f
+
+#       Sample tree mega-widget.Can be used to display hierachies. The clients
+#       who use this package need to specify parent and tail procedures for any
+#       element of the tree hierarchy. All the nodes that get stored inside the
+#       tree are complete path names separated by '/'. The toplevel node is
+#       always /
+#
+
+package provide tree 1.0
+
+namespace eval tree {
+   variable tree
+
+
+   #  
+   # default font setup
+   # 
+
+   switch $tcl_platform(platform) {
+      unix {
+    set tree(font) \
+        -adobe-helvetica-medium-r-normal-*-11-80-100-100-p-56-iso8859-1
+      }
+      windows {
+    set tree(font) \
+        -adobe-helvetica-medium-r-normal-*-14-100-100-100-p-76-iso8859-1
+      }
+   }
+   
+   #
+   # Bitmaps used to show which parts of the tree can be opened/closed
+   #
+
+   set maskdata "#define solid_width 9\n#define solid_height 9"
+   append maskdata {
+      static unsigned char solid_bits[] = {
+    0xff, 0x01, 0xff, 0x01, 0xff, 0x01, 0xff, 0x01, 0xff, 0x01, 0xff, 0x01,
+    0xff, 0x01, 0xff, 0x01, 0xff, 0x01
+      };
+   }
+   set data "#define open_width 9\n#define open_height 9"
+   append data {
+      static unsigned char open_bits[] = {
+    0xff, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x7d, 0x01, 0x01, 0x01,
+    0x01, 0x01, 0x01, 0x01, 0xff, 0x01
+      };
+   }
+
+   set tree(openbm) [image create bitmap openbm -data $data \
+          -maskdata $maskdata \
+          -foreground black -background white]
+
+   set data "#define closed_width 9\n#define closed_height 9"
+   append data {
+      static unsigned char closed_bits[] = {
+    0xff, 0x01, 0x01, 0x01, 0x11, 0x01, 0x11, 0x01, 0x7d, 0x01, 0x11, 0x01,
+    0x11, 0x01, 0x01, 0x01, 0xff, 0x01
+      };
+   }
+   set tree(closedbm) [image create bitmap closedbm -data $data \
+            -maskdata $maskdata \
+            -foreground black -background white]
+
+
+    namespace export create additem delitem config setselection getselection 
+    namespace export openbranch closebranch labelat
+}
+
+# tree::create -- 
+#
+#   Create a new tree widget. Canvas is used to emulate a tree
+#   widget. Initialized all the tree specific data structures. $args become
+#   the configuration arguments to the canvas widget from which the tree is
+#   constructed.  #
+
+# Arguments:
+#    -paren   proc
+#
+#      sets the parent procedure provided by the application. tree
+#      widget will use this procedure to determine the parent of an
+#      element. This procedure will be called with the node as an 
+#      argument  
+#
+#   -tail    proc  [Given a complete path this proc will give the end-element
+#                        name]
+#
+# Results:   A tree widget with the path $w is created.
+#
+
+proc tree::create {w args} {
+   variable tree
+   set newArgs {}
+   
+   for {set i 0} {$i < [llength $args]} {incr i} {
+      set arg [lindex $args $i]
+      switch -glob -- $arg {
+    -paren* {set tree($w:parenproc) [lindex $args [expr $i +1]]; incr i}
+    -tail* {set tree($w:tailproc) [lindex $args [expr $i +1]]; incr i}
+    default {lappend newArgs $arg}
+    }
+      }
+
+   if ![info exists tree($w:parenproc)] {
+      set tree($w:parenproc) parent
+   }
+
+   if ![info exists tree($w:tailproc)] {
+      set tree($w:tailproc) tail
+   }
+
+  eval canvas $w -bg white $newArgs
+  bind $w <Destroy> "tree::delitem $w /"
+  tree::DfltConfig $w /
+  tree::BuildWhenIdle $w
+  set tree($w:selection) {}
+  set tree($w:selidx) {}
+}
+
+# tree::DfltConfig  --
+#   
+#   Internal fuction used to initial the attributes associated with an item/node. Usually called when an item is added into the tree
+#
+#  Arguments:
+#   wid   tree widget
+#   node  complete path of the new node
+#
+#  Results:
+#   Initializes the attributes associated with a node.
+
+
+proc tree::DfltConfig {wid node} {
+  variable tree
+  set tree($wid:$node:children) {}
+  set tree($wid:$node:open) 0
+  set tree($wid:$node:icon) {}
+  set tree($wid:$node:tags) {}
+
+}
+
+# tree::config --
+#   
+#   Fuction to set tree widget configuration options. 
+#
+#  Arguments:
+#   args  any valid configuration option a canvas widget takes
+#   
+#  Results:
+#   Configures the underlying canvas widget with the options
+#
+
+proc tree::config {wid args} {
+variable tree
+    set newArgs {}
+    for {set i 0} {$i < [llength $args]} {incr i} {
+      set arg [lindex $args $i]
+      switch -glob -- $arg {
+    -paren* {set tree($w:parenproc) [lindex $args [expr $i +1]]; incr i}
+    -tail* {set tree($w:tailproc) [lindex $args [expr $i +1]]; incr i}
+    default {lappend newArgs $arg}
+    }
+      }
+  eval $wid config $newArgs
+}
+
+#  tree::additem --
+#
+# Called to add a new node to the tree.
+#
+#  Arguments:
+#       wid   tree widget
+#       node  complete path name of the node (path is separated by /)
+#       args  can be -image val, -tags {taglist} to identify the item
+#
+#  Results:
+#       Adds the new item and configures the new item
+#
+
+proc tree::additem {wid node args} {
+  variable tree
+   set parent [$tree($wid:parenproc) $node]
+   set n [eval $tree($wid:tailproc) $node]
+  if {![info exists tree($wid:$parent:open)]} {
+    error "parent item \"$parent\" is missing"
+  }
+  set i [lsearch -exact $tree($wid:$parent:children) $n]
+  if {$i>=0} {
+      return
+  }
+  lappend tree($wid:$parent:children) $n
+  set tree($wid:$parent:children) [lsort $tree($wid:$parent:children)]
+  tree::DfltConfig $wid $node
+  foreach {op arg} $args {
+    switch -exact -- $op {
+      -image {set tree($wid:$node:icon) $arg}
+      -tags {set tree($wid:$node:tags) $arg}
+    }
+  }
+  tree::BuildWhenIdle $wid
+}
+
+#  tree::delitem  --
+#   
+#   Deletes the specified item from the widget
+#
+#  Arguments:
+#   wid   tree widget
+#   node  complete path of the node
+#
+#  Results:
+#   If the node exists, it will be deleted.
+#
+
+proc tree::delitem {wid node} {
+  variable tree
+  if {![info exists tree($wid:$node:open)]} return
+  if {[string compare $node /]==0} {
+    # delete the whole widget
+    catch {destroy $wid}
+    foreach t [array names tree $wid:*] {
+      unset tree($t)
+    }
+  }
+  foreach c $tree($wid:$node:children) {
+    catch {tree::delitem $wid $node/$c}
+  }
+  unset tree($wid:$node:open)
+  unset tree($wid:$node:children)
+  unset tree($wid:$node:icon)
+  set parent [$tree($wid:parenproc) $node]
+   set n [eval $tree($wid:tailproc) $node]
+  set i [lsearch -exact $tree($wid:$parent:children) $n]
+  if {$i>=0} {
+    set tree($wid:$parent:children) [lreplace $tree($wid:$parent:children) $i $i]
+  }
+  tree::BuildWhenIdle $wid
+}
+
+# The user has control over which node in the item can be assigned as a selection.
+# setselection and getselection routines are used to accomplish the job.
+# The selection object is drawn with a highlighted background.
+
+# tree::setselection  --
+#   
+#   Makes the given node as the currently selected node.
+#
+#  Arguments:
+#   wid - tree widget
+#   node - complete path of the one of nodes
+#
+#  Results:
+#   The given node will be selected
+#
+
+proc tree::setselection {wid node} {
+  variable tree
+  set tree($wid:selection) $node
+  tree::DrawSelection $wid
+}
+
+#  tree::getselection  --
+#   
+#   Get the currently selected tree node
+#
+#  Arguments:
+#   wid - tree widget
+#   
+#  Results:
+#   If a node is currently selected it will be returned otherwise NULL
+#
+
+proc tree::getselection wid {
+  variable tree
+  return $tree($wid:selection)
+}
+
+#  tree::Build --
+#   
+#   Internal function to rebuild the tree
+#
+#  Arguments:
+#   wid -  tree widgets
+#   
+#  Results:
+#
+#     This routine has no complex logic in it. Deletes all the current items
+#    on the canvas associated with the tree and re-builds the tree.  #
+#
+#       
+
+proc tree::Build wid {
+  variable tree
+  $wid delete all
+  catch {unset tree($wid:buildpending)}
+  set tree($wid:y) 30
+  tree::BuildNode $wid / 10
+  $wid config -scrollregion [$wid bbox all]
+  tree::DrawSelection $wid
+}
+
+#  tree::BuildNode --
+#   
+#   Function called by tree::build to incrementally build each node
+#
+#  Arguments:
+#   wid - tree widget
+#       node - complete path of the node
+#   in - the starting x-cordinate
+#
+#  Results:
+#   The node gets drawn
+#
+
+proc tree::BuildNode {wid node in} {
+  variable tree
+  if {$node=="/"} {
+    set vx {}
+  } else {
+    set vx $node
+  }
+  set start [expr $tree($wid:y)-10]
+  foreach c $tree($wid:$node:children) {
+    set y $tree($wid:y)
+    incr tree($wid:y) 17
+    $wid create line $in $y [expr $in+10] $y -fill gray50  
+    set icon $tree($wid:$vx/$c:icon)
+    set taglist x
+    foreach tag $tree($wid:$vx/$c:tags) {
+      lappend taglist $tag
+    }
+    set x [expr $in+12]
+    if {[string length $icon]>0} {
+      set k [$wid create image $x $y -image $icon -anchor w -tags $taglist]
+      incr x 20
+      set tree($wid:tag:$k) $vx/$c
+    }
+    set j [$wid create text $x $y -text $c -font $tree(font) \
+                                -anchor w -tags $taglist]
+    set tree($wid:tag:$j) $vx/$c
+    set tree($wid:$vx/$c:tag) $j
+    if {[string length $tree($wid:$vx/$c:children)]} {
+      if {$tree($wid:$vx/$c:open)} {
+         set j [$wid create image $in $y -image $tree(openbm)]
+         $wid bind $j <1> "set tree::tree($wid:$vx/$c:open) 0; tree::Build $wid"
+         tree::BuildLayer $wid $vx/$c [expr $in+18]
+      } else {
+         set j [$wid create image $in $y -image $tree(closedbm)]
+         $wid bind $j <1> "set tree::tree($wid:$vx/$c:open) 1; tree::Build $wid"
+      }
+    }
+  }
+  set j [$wid create line $in $start $in [expr $y+1] -fill gray50 ]
+  $wid lower $j
+}
+
+# Now, after the tree gets displayed, if the user chooses to open any of the
+# branches by clicking the '+' image next to a node then the following
+# openbranch routine will arrange to redraw the tree by displaying the node's children.
+
+#  tree::openbranch --
+#
+# A callback that gets called to open a node to show its children
+#
+#  Arguments:
+#       wid - tree widget
+#       node - the node whose children should be shown
+#
+#  Results:
+#      The children of the node will be drawn
+#
+
+proc tree::openbranch {wid node} {
+  variable tree
+  if {[info exists tree($wid:$node:open)] && $tree($wid:$node:open)==0
+      && [info exists tree($wid:$node:children)] 
+      && [string length $tree($wid:$node:children)]>0} {
+    set tree($wid:$node:open) 1
+    tree::Build $wid
+  }
+}
+
+# Similarly, when the user clicks on the '-' image next to a node, the
+# closebranch routine will arrange the tree to be redrawn by closing
+# the branch and undisplaying the children.
+
+# tree::closebranch   --
+#
+# The opposite of open branch, see above
+#
+#  Arguments:
+#
+#
+#  Results:
+#
+
+proc tree::closebranch {wid node} {
+  variable tree
+  if {[info exists tree($wid:$node:open)] && $tree($wid:$node:open)==1} {
+    set tree($wid:$node:open) 0
+    tree::Build $wid
+  }
+}
+
+# The DrawSelection routine will highlight the currently selected node.
+
+#  tree::DrawSelection --
+#
+# Highlights the current selection
+#
+#  Arguments:
+#      wid - tree widget
+#
+#  Results:
+#      The current selection will be high-lighted with skyblue
+#
+
+proc tree::DrawSelection wid {
+  variable tree
+  if {[string length $tree($wid:selidx)]} {
+    $wid delete $tree($wid:selidx)
+  }
+  set node $tree($wid:selection)
+  if {[string length $node]==0} return
+  if {![info exists tree($wid:$node:tag)]} return
+  set bbox [$wid bbox $tree($wid:$node:tag)]
+  if {[llength $bbox]==4} {
+    set i [eval $wid create rectangle $bbox -fill skyblue -outline {{}}]
+    set tree($wid:selidx) $i
+    $wid lower $i
+  } else {
+    set tree($wid:selidx) {}
+  }
+}
+
+#  tree::BuildWhenIdle --
+#	
+#	Function to reduce the number redraws of the tree. When a redraw is not
+#	immediately warranted this function gets called
+#
+#  Arguments:
+#	wid  - tree wiget
+#	
+#  Results:
+#	Set the tree widget to be redrawn in future.
+#
+
+proc tree::BuildWhenIdle wid {
+  variable tree
+  if {![info exists tree($wid:buildpending)]} {
+    set tree($wid:buildpending) 1
+    after idle "tree::Build $wid"
+  }
+}
+
+#  tree::labelat --
+#	
+#	Returns the tree node closest to  x,y co-ordinates
+#
+#  Arguments:
+#	wid      tree widget
+#	x,y      co-ordinates
+#
+#  Results:
+#	The node closest to x,y will be returned.
+
+
+proc tree::labelat {wid x y} {
+  set x [$wid canvasx $x]
+  set y [$wid canvasy $y]
+  variable tree
+  foreach m [$wid find overlapping $x $y $x $y] {
+    if {[info exists tree($wid:tag:$m)]} {
+      return $tree($wid:tag:$m)
+    }
+  }
+  return ""
+}
+

@@ -1,0 +1,13 @@
+Chapter 18  -  The Perl Programming.
+
+
+hello1.pl, hello2.pl  -  two programs that print "Hello, World".
+
+hello3.pl  -  another program that prints "Hello, World", this time using an array.
+
+phone1.pl  -  a program that uses hashes.
+
+phone2.pl  -  a program that uses quoting and substitution.
+
+cd_db.pl  -  yet another program that implements the CD database.
+

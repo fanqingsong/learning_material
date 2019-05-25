@@ -1,0 +1,496 @@
+#!/usr/bin/wish -f
+# logView.tk  --
+#	
+#	Essentially a general purpose GUI wrapper to tail, gui and any commands
+#	that will output data continuosly. This GUI has the ability to record
+#	the commands as smart buttons, so that you can re-run the same commands
+#	again and again without having to retype
+
+  
+set tailRc "~/.tailrc"
+wm title .  "Process Log Viewer"
+wm iconname . "Log Viewer"
+
+global tailSize textw fileName tailFd curNick tailOpts statusImgWin
+
+# tailSize --> size in lines of tail output to display
+# fileName --> File name: variable
+# tailFd   --> proc fd or file fd of current tail process
+# curNick  --> current nick being shown; nick essentially a shortcut to a cmd.
+# tailOpts --> saved options
+# statusImgWin --> window showing what kind of error it is!
+
+set tailSize 20
+set fileName "/home/";     #include your own path here
+
+# file types for the file selection dialog box.
+set tailOpts(types) {
+   {"All files"                 *}
+   {"Text files"                {.txt .doc}      }
+   {"Text files"                {}           TEXT}
+
+   {"Tcl Scripts"               {.tcl}       TEXT}
+   {"C Source Files"            {.c .h}          }
+   {"All Source Files"          {.tcl .c .h}     }
+   {"Image Files"               {.gif}           }
+   {"Image Files"               {.jpeg .jpg}     }
+   {"Image Files"               ""    {GIFF JPEG}}
+}
+set tailOpts(wins) {}
+
+# Next, we will build the user interface. 
+
+proc BuildTailGui {w} {
+    global tailSize textw fileName tailFd curNick tailOpts statusImgWin
+    global viewOptMenu
+
+    if {$w == "."} {
+       set w "";
+    }
+
+    # Build Menu for file
+    menu $w.menu -tearoff 0
+
+    # File menu
+    set m $w.menu.file
+    menu $m -tearoff 0
+    $w.menu add cascade -label "File" -menu $m -underline 0
+    $m add command -label "Add New ..." -command {AddNew} -underline 0
+    $m add command -label "Exit" -command {exit} -underline 0
+
+    # Edit Menu
+    set m $w.menu.edit
+    menu $m -tearoff 0
+    $w.menu add cascade -label "Edit" -menu $m -underline 0
+    $m add command -label "Delete Nicks.." -command {DeleteNicks} -underline 0
+
+    # Help Menu
+    set m $w.menu.help
+    menu $m -tearoff 0 
+    $w.menu add cascade -label "Help" -menu $m -underline 0
+    $m add command -label "About..." -underline 0 -command {
+        tk_messageBox -parent . -title "Process Log Viewer" -type \
+        ok -message    "Tk Tail Tool \nby Krishna Vedati(kvedati@yahoo.com)"
+    } 
+
+# The routine then adds a text widget to display the output of any log proces.
+
+
+# Next, the routine builds rows of widgets.
+
+    # Create status/error message window
+    frame $w.status  -relief sunken -bd 2
+    set statusImgWin [label $w.status.flag -bitmap info]
+    label $w.status.lab -textvariable statusText -anchor w -bg "wheat"
+    pack $w.status.flag -side left  
+    pack $w.status.lab -side left -fill both -expand 1
+
+    # File name: entry panel
+    frame $w.file
+    label $w.file.label -text "File name:" -width 13 -anchor w
+    entry $w.file.entry -width 30 -textvariable fileName
+    button $w.file.choose -text "..." -command \
+        "set fileName \[tk_getOpenFile -filetypes \$tailOpts(types) \
+         -parent \[winfo toplevel $w.file\]\];"
+
+    button $w.file.button -text "Tail File" \
+       -command "AddToView  file \$fileName"
+    pack $w.file.label $w.file.entry -side left
+    pack $w.file.choose -side left -pady 5 -padx 10
+    pack $w.file.button -side left -pady 5 -padx 10
+    bind $w.file.entry <Return> " AddToView  file \$fileName"
+    focus $w.file.entry
+
+    # Command entry panel
+    frame $w.fileC
+    label $w.fileC.cLabel -text "Command:" -width 13 -anchor w
+    entry $w.fileC.cEntry -width 40 -textvariable command
+    label $w.fileC.nLabel -text "Nick:" -anchor w
+    entry $w.fileC.nEntry -width 15 -textvariable nick
+    button $w.fileC.add -text "Add" -command "AddToView \"command\"\
+         \$command \$nick;"
+    pack $w.fileC.cLabel $w.fileC.cEntry -side left
+    pack $w.fileC.nLabel -side left -pady 5 -padx 10
+    pack $w.fileC.nEntry -side left -pady 5 -padx 5
+    pack $w.fileC.add -side left -pady 5 -padx 5
+
+    # Option Menu command panel
+    frame $w.optF
+    label $w.optF.label -text "View:" -width 12 -anchor w
+    set viewOptMenu [tk_optionMenu $w.optF.optB curNick " "]
+    button $w.optF.stop -text "Stop" -command Stop
+
+    pack $w.optF.label -side left 
+    pack $w.optF.optB -side left -pady 5
+    pack $w.optF.stop -side left -pady 5
+
+    # create text widget
+    frame $w.textf -bg red
+    text $w.textf.text -height [expr $tailSize] -xscrollcommand "$w.textf.scrollh set" \
+       -yscrollcommand "$w.textf.scrollv set" -bg lightblue
+    set textw $w.textf.text
+    scrollbar $w.textf.scrollh -orient horizontal -command "$w.textf.text xview"
+    scrollbar $w.textf.scrollv -orient vertical -command "$w.textf.text yview"
+
+    pack $w.textf.scrollv -side right -fill y -expand 1
+    pack $w.textf.scrollh -side bottom -fill x -expand 1
+    pack $w.textf.text -fill x -fill y -expand 1
+
+    # pack all the frames
+    [winfo toplevel $w.textf] configure -menu $w.menu
+    pack $w.status -side bottom -fill x -pady 2m
+    pack $w.file -side top -fill x -expand 1
+    pack $w.fileC -side top -fill x -expand 1
+    pack $w.optF -side top -fill x -expand 1
+    pack $w.textf -side top -fill x -fill y -expand 1
+
+}
+
+# Once the user sets up a command or a file-type nick, the TailFile method will get called.
+# This method makes sure that the specified file exists.
+# It creates the command  and opens it as a process.
+# Then, it binds a read event to the file descriptor and returns.
+# The read event will call TailUpdate every time the file identifier associated
+# with the process is readable.
+
+#  TailFile --
+#        
+#        Show the tail of the request file.
+#
+#  Arguments:
+#        file name to be tailed.
+#        
+#  Results:
+#        The tail of the file is shown in the window.
+#
+proc TailFile { type file {nick ""}} {
+    global tailSize tailFd  textw curNick 
+
+    set w $textw
+    catch {
+        fileevent $tailFd readable {}
+        close $tailFd
+        update
+    }
+    $w delete 1.0 end
+
+    if {$type == ""} {
+        $w insert end "Illegal type...";
+        return
+    }
+    if {$type == "file"} {
+        if {$file == ""} {
+            $w insert end "please specify a valid filename..."
+            return
+        }
+        if ![file exists $file] {
+            DeleteFromView $file
+            $w insert end "file $file does not exist..."
+            return
+        }
+        set nick $file
+    } elseif {$type == "command"} {
+        if {$file == ""} {
+            $w insert end "please specify a command..."
+            return
+        }
+    }
+
+    if {$type == "file"} {
+        set tailFd [open "|tail -f $file" r]
+        wm title [winfo toplevel $w] "Tail tool \[tail -f $file\]"
+    } elseif {$type == "command"} {
+        if [catch {set tailFd [open "|$file" r]}] {
+            SetStatus error  "can't execute command $file..."
+            DeleteFromView $nick
+            set curNick ""
+            return
+        }
+        
+        wm title [winfo toplevel $w] "Tail tool \[tail |$file\]"
+    }      
+    fconfigure $tailFd -blocking 0
+    set lines 0
+    fileevent $tailFd readable "TailUpdate \$tailFd"
+}
+
+
+# The TailUpdate procedure gets called as part of the event handler on the current log process read status.
+# When this procedure gets called, it collects the output from the process and inserts it into the text widget.
+# It also makes sure that at any given time, no more than $tailSize lines are shown in the text window.
+
+proc TailUpdate {fileFd} {
+   global textw curNick
+   global tailSize tailFd
+
+   set w $textw
+   if [eof $tailFd] {
+      fileevent $tailFd readable {}
+      $w insert end "Tailing \"$curNick\" done..."
+      return
+   }
+
+   set line [gets $tailFd]
+   
+   $w insert end $line
+   $w insert end "\n"
+   
+   set lines [lindex [split [$w index end] .] 0]
+   if {$lines == [expr $tailSize+1]} {
+      $w delete 1.0 2.0
+   }
+   $w yview moveto 1.0
+
+}
+
+# The Stop call-back is used to stop the current logProcess.
+
+# Stop the current tailing process.
+proc Stop {} {
+   global tailFd
+   set pid [pid $tailFd]
+   catch {exec kill -9 $pid}
+}
+
+# The AddNew procedure gets called every time the user adds a new shortcut.
+# It creates a simple GUI for the user to create a new command nick.
+
+#  AddNew --
+#    Add a new tail file to the system
+#
+#  Arguments:
+#    none.
+#    
+#  Results:
+#    
+
+proc AddNew {args} {
+   toplevel .addnew 
+   set w .addnew
+   wm title $w "Add new tail file..."
+   
+   frame  $w.top  
+   frame $w.sep -bd 2  -relief ridge
+   frame $w.bot 
+
+
+   set k $w.top
+   
+   label $k.name -text "Nickname for item:" 
+   label $k.command -text "Command:"  
+
+   grid $k.name -row 0 -column 0 -sticky e
+   grid $k.command -row 1 -column 0 -sticky e
+
+   entry $k.nameE -textvariable nameE -width 40
+   entry $k.commandE -textvariable commandE -width 50
+
+   grid $k.nameE -row 0 -column 1 -sticky ew
+   grid $k.commandE -row 1 -column 1 -sticky ew
+   
+   grid columnconfigure $k 1 -weight 1
+   grid propagate $k 1
+
+   pack $w.top  -side top -fill both -expand 1
+   pack $w.sep -side top -fill x -expand 1 -pady 5
+   pack $w.bot -side top -fill x -expand 1
+   
+
+   button $w.bot.apply -text "Add" -command "AddToView \"command\"  \"\$commandE\" \"\$nameE\""
+   button $w.bot.dismiss -text "Dismiss" -command {destroy .addnew}
+   pack $w.bot.apply $w.bot.dismiss -side left -expand  1
+   PositionWindow $w
+}
+
+# The SetStatus procedure is used to set GUI status messages in the status window.
+# It's a general-purpose routine to display both error and informational messages.
+# If a type error occurs, then an error bitmap will be displayed in the status window.
+
+proc SetStatus {type text {timer 5000}} {
+   global statusText  statusImgWin
+   set statusText $text
+   after $timer "set statusText \"\""
+   $statusImgWin config -bitmap $type
+   after $timer "$statusImgWin config -bitmap \"\""
+}
+
+# The AddToView command will add a nick to the option button.
+# Before it adds the item to the option menu, it makes sure that the user had supplied
+# the required information.
+
+proc AddToView  {type command {nick ""}}  {
+   global tailOpts  viewOptMenu
+   
+
+    catch {Stop}
+   if {$type == "file"} {
+      set nick $command
+      if {$command == ""} {
+          SetStatus error "Please supply File name..."         
+      }
+   } elseif  {$type == "command"} {
+      if {($nick == "") || ($command == "") } {
+         SetStatus error "Please supply both nick and command names..."
+         return
+      }
+   }
+   set l [list  "$type" "$nick" "$command"]
+   if ![info exists tailOpts(wins)] {
+      set tailOpts $l
+      return
+   } else {
+      foreach item $tailOpts(wins) {
+         if {$nick == [lindex $item 1]} {
+            if {$type == "file"} {
+               SetStatus info "File $nick is all ready in the tail list...."            
+            } else {
+               SetStatus info "Nick $nick is all ready in the tail list...."
+            }
+            return;
+         }
+      }
+      lappend tailOpts(wins) $l
+   }
+
+   UpdateOptionMenu   
+   $viewOptMenu invoke end
+}
+
+# The DeleteNicks routine will create a simple listbox-based user interface for the user to delete the nicks.
+
+proc DeleteNicks {} {
+   global   tailOpts
+
+   if ![info exists tailOpts(wins)] {
+      SetStatus info "No entries to delete..."
+      return;
+   }
+   if {$tailOpts(wins) == {}} {
+      SetStatus info "No entries to delete..."
+      return;
+   }
+    catch {destroy .delent}
+   toplevel .delent
+   set w .delent
+   wm title $w "Delete Entry"
+
+   scrollbar $w.h -orient horizontal -command "$w.list xview"
+   scrollbar $w.v -orient vertical -command "$w.list yview"
+   listbox $w.l -selectmode single -width 20 -height 10 \
+        -setgrid 1 -xscroll "$w.h set" -yscroll "$w.v set"
+
+    frame $w.buts 
+    button $w.buts.d -text "Delete" -command {
+        set index [.delent.l curselection ];
+        if {$index == ""} {return}
+        set sel [.delent.l get $index ]; 
+        puts "sel $sel ; index $index"
+        DeleteFromView $sel;
+        .delent.l  delete $index
+    }
+
+    button $w.buts.dismiss -text "Dismiss" -command "destroy $w"
+    
+    grid $w.l -row 0 -column 0 -columnspan 2 -sticky "news"
+    grid $w.v -row 0 -column 2 -sticky "ns"
+    grid $w.h -row 1 -column 0 -columnspan 2 -sticky "we"
+    grid $w.buts -row 2 -column 0 -columnspan 3
+
+    pack $w.buts.d $w.buts.dismiss -side left -padx 10
+
+   foreach ent $tailOpts(wins) {
+     $w.l insert end [lindex $ent 1]
+   }
+
+    PositionWindow $w
+}    
+
+
+# The DeleteFromView routine is an internal routine that removes the specified nick from the data structures
+# and updates the optionbutton.
+
+proc DeleteFromView {nick} {
+   global tailOpts
+
+    if {$nick == ""} {
+        return
+    }
+   set newList {}
+   if ![info exists tailOpts(wins)] {
+      return
+   }
+   foreach item $tailOpts(wins) {
+      if {$nick != [lindex $item 1]} {
+         lappend newList $item
+      } 
+   }
+   set tailOpts(wins) $newList
+   UpdateOptionMenu
+}
+
+# The PositionWindow routine centers a toplevel dialogue box around its parent.
+# It is used to map dialog boxes on the main window, instead of some far-away corner of the screen.
+
+#
+# PositionWindow  --
+#	
+#	Position the toplevel window centered to its parent.
+#
+#  Arguments:
+#	toplevel window.
+#	
+#  Results:
+#	Positions the window 
+#
+
+proc PositionWindow {w} {
+   set paren [winfo parent $w]
+   wm iconify $w
+   set parenConf [wm geometry $paren]
+   set parenConf [split $parenConf {+ - x}]
+   set winConf [split [wm geometry $w] {+ - x}]
+   set X [expr [lindex $parenConf 2] + [lindex $parenConf 0]/2 - \
+	      [winfo reqwidth $w]/2]
+
+   set Y [expr [lindex $parenConf 3] + [lindex $parenConf 1]/2 - \
+	      [winfo reqheigh $w]/2]
+   wm geometry $w +$X+$Y
+   wm deiconify $w
+}
+
+# The UpdateOptionMenu command updates the nicks option menu widget.
+
+#  UpdateOptionMenu --
+#
+#
+#
+#  Arguments:
+#
+#
+#  Results:
+#
+
+proc UpdateOptionMenu {} {
+   global tailOpts curNick viewOptMenu
+
+   $viewOptMenu delete 0 end
+   if ![info exists tailOpts(wins)] {
+      return
+   }
+   if {$tailOpts(wins) == {}} {
+      set curNick ""
+      return
+   }
+   foreach item $tailOpts(wins) {
+       $viewOptMenu add command -label [lindex $item 1] -command "catch Stop; TailFile  \"[lindex $item 0]\" \"[lindex $item 2]\" \"[lindex $item 1]\" "
+      set curNick [lindex $item 1]
+   }
+}
+
+# Finally, we map the main window.
+
+wm withdraw .
+
+toplevel .t
+
+BuildTailGui .t

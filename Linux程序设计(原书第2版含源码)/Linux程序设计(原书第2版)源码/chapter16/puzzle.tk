@@ -1,0 +1,62 @@
+#!/usr/bin/wish -f
+
+# First we create the image. Then we configure the frame which will hold the pieces of
+# the image that will form the puzzle. This we pack with a little padding.
+
+set image [image create photo -file picture.gif -width 160 -height 160]
+
+frame .frame -width 120 -height 120 -borderwidth 2 -relief sunken \
+-bg grey
+pack .frame -side top -pady 1c -padx 1c
+
+# Now we create the individual pieces of the puzzle. This involves fifteen loops
+# of the code, which crops portions of the original image to fit on the buttons.
+
+set order {3 1 6 2 5 7 15 13 4 11 8 9 14 10 12}
+for {set i 0} {$i < 15} {set i [expr $i+1]} {
+    set num [lindex $order $i]
+    set xpos($num) [expr ($i%4)*.25]
+    set ypos($num) [expr ($i/4)*.25]
+
+    set x [expr $i%4]
+    set y [expr $i/4]
+
+    set butImage [image create photo image-${num} -width 40 -height 40]
+    $butImage copy  $image  -from [expr round($x*40)] \
+                                  [expr round($y*40)] \
+                                  [expr round($x*40+40)] \
+                                  [expr round($y*40+40)]
+    button .frame.$num -relief raised -image $butImage \
+                       -command "puzzleSwitch  $num" \
+                       -highlightthickness 0 
+    place .frame.$num -relx $xpos($num) -rely $ypos($num) \
+                      -relwidth .25 -relheight .25
+}
+
+# Finally, we have the event handler that deals with the user's input.
+# The two global variables are set to show that the initial space in the puzzle is at
+# the bottom right-hand corner.
+
+set xpos(space) .75
+set ypos(space) .75
+
+proc puzzleSwitch { num} {
+    global xpos ypos
+    if {(($ypos($num) >= ($ypos(space) - .01))
+           && ($ypos($num) <= ($ypos(space) + .01))
+           && ($xpos($num) >= ($xpos(space) - .26))
+           && ($xpos($num) <= ($xpos(space) + .26)))
+           || (($xpos($num) >= ($xpos(space) - .01))
+           && ($xpos($num) <= ($xpos(space) + .01))
+           && ($ypos($num) >= ($ypos(space) - .26))
+           && ($ypos($num) <= ($ypos(space) + .26)))} {
+        set tmp $xpos(space)
+        set xpos(space) $xpos($num)
+        set xpos($num) $tmp
+        set tmp $ypos(space)
+        set ypos(space) $ypos($num)
+        set ypos($num) $tmp
+        place .frame.$num -relx $xpos($num) -rely $ypos($num)
+    }
+}
+

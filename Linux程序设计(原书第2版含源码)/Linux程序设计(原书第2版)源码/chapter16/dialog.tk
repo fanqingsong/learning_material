@@ -1,0 +1,12 @@
+#!/usr/bin/wish -f
+
+wm withdraw .
+
+set i [tk_dialog .info  "Info" "Simple Info Dialog" info  0 Okay Cancel] 
+if {$i==0} {
+    puts "Okay Button Pressed"
+} else {
+    puts "Cancel Button Pressed"
+}
+exit
+
