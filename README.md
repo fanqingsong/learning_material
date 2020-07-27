@@ -1,6 +1,4 @@
-daydayup
+competence uplift
 ========
 
-学习积累
-
-存放学习资料，以备共享使用
+stash for learning and sharing
